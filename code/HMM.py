@@ -285,50 +285,119 @@ class HiddenMarkovModel:
             N_iters:    The number of iterations to train on.
         '''
 
-        marg1 = [[[0. for _ in range(self.L)] for _ in range(len(X[i]) + 1)] for i in range(len(X))]
-        marg2 = [[[[0. for _ in range(self.L)] for _ in range(self.L)] for _ in range(len(X[i]) + 1)] for i in range(len(X))]
-        for e in range(N_iters):
-        #for e in range(10):
-            for i in range(len(X)):
-                alphas = self.forward(X[i], True)
-                betas = self.backward(X[i], True)
-                for j in range(1, len(X[i]) + 1):
-                    norm_sum = sum([a*b for a,b in zip(alphas[j],betas[j])])
-                    for a in range(self.L):
-                        marg1[i][j][a] = alphas[j][a]*betas[j][a] / norm_sum
-            for i in range(len(X)):
-                alphas = self.forward(X[i], True)
-                betas = self.backward(X[i], True)
-                for j in range(1, len(X[i])):
-                    norm_sum = 0
-                    for a in range(self.L):
-                        for b in range(self.L):
-                            norm_sum += alphas[j][a]*betas[j+1][b]*self.A[a][b]*self.O[b][X[i][j]]
-                    for a in range(self.L):
-                        for b in range(self.L):
-                            marg2[i][j][a][b] = alphas[j][a]*betas[j+1][b]*self.A[a][b]*self.O[b][X[i][j]] / norm_sum
+        # marg1 = [[[0. for _ in range(self.L)] for _ in range(len(X[i]) + 1)] for i in range(len(X))]
+        # marg2 = [[[[0. for _ in range(self.L)] for _ in range(self.L)] for _ in range(len(X[i]) + 1)] for i in range(len(X))]
+        # for e in range(N_iters):
+        # #for e in range(10):
+        #     for i in range(len(X)):
+        #         alphas = self.forward(X[i], True)
+        #         betas = self.backward(X[i], True)
+        #         for j in range(1, len(X[i]) + 1):
+        #             norm_sum = sum([a*b for a,b in zip(alphas[j],betas[j])])
+        #             for a in range(self.L):
+        #                 marg1[i][j][a] = alphas[j][a]*betas[j][a] / norm_sum
+        #     for i in range(len(X)):
+        #         alphas = self.forward(X[i], True)
+        #         betas = self.backward(X[i], True)
+        #         for j in range(1, len(X[i])):
+        #             norm_sum = 0
+        #             for a in range(self.L):
+        #                 for b in range(self.L):
+        #                     norm_sum += alphas[j][a]*betas[j+1][b]*self.A[a][b]*self.O[b][X[i][j]]
+        #             for a in range(self.L):
+        #                 for b in range(self.L):
+        #                     marg2[i][j][a][b] = alphas[j][a]*betas[j+1][b]*self.A[a][b]*self.O[b][X[i][j]] / norm_sum
+        #
+        #     print("iter: ", e )
+        #
+        #     for i in range(self.L):
+        #         for j in range(self.L):
+        #             top_sum = 0
+        #             bottom_sum = 0
+        #             for n in range(len(X)):
+        #                 for m in range(len(X[n])):
+        #                     bottom_sum += marg1[n][m][i]
+        #                     top_sum += marg2[n][m][i][j]
+        #             self.A[i][j] = top_sum / bottom_sum
+        #
+        #         for j in range(self.D):
+        #             top_sum = 0
+        #             bottom_sum = 0
+        #             for n in range(len(X)):
+        #                 for m in range(1, len(X[n]) + 1):
+        #                     bottom_sum += marg1[n][m][i]
+        #                     if X[n][m - 1] == j:
+        #                         top_sum += marg1[n][m][i]
+        #             self.O[i][j] = top_sum / bottom_sum
 
-            print("iter: ", e )
+        for iteration in range(1, N_iters + 1):
+            if iteration % 10 == 0:
+                print("Iteration: " + str(iteration))
 
-            for i in range(self.L):
-                for j in range(self.L):
-                    top_sum = 0
-                    bottom_sum = 0
-                    for n in range(len(X)):
-                        for m in range(len(X[n])):
-                            bottom_sum += marg1[n][m][i]
-                            top_sum += marg2[n][m][i][j]
-                    self.A[i][j] = top_sum / bottom_sum
+            # Numerator and denominator for the update terms of A and O.
+            A_num = [[0. for i in range(self.L)] for j in range(self.L)]
+            O_num = [[0. for i in range(self.D)] for j in range(self.L)]
+            A_den = [0. for i in range(self.L)]
+            O_den = [0. for i in range(self.L)]
 
-                for j in range(self.D):
-                    top_sum = 0
-                    bottom_sum = 0
-                    for n in range(len(X)):
-                        for m in range(1, len(X[n]) + 1):
-                            bottom_sum += marg1[n][m][i]
-                            if X[n][m - 1] == j:
-                                top_sum += marg1[n][m][i]
-                    self.O[i][j] = top_sum / bottom_sum
+            # For each input sequence:
+            for x in X:
+                M = len(x)
+                # Compute the alpha and beta probability vectors.
+                alphas = self.forward(x, normalize=True)
+                betas = self.backward(x, normalize=True)
+
+                # E: Update the expected observation probabilities for a
+                # given (x, y).
+                # The i^th index is P(y^t = i, x).
+                for t in range(1, M + 1):
+                    P_curr = [0. for _ in range(self.L)]
+
+                    for curr in range(self.L):
+                        P_curr[curr] = alphas[t][curr] * betas[t][curr]
+
+                    # Normalize the probabilities.
+                    norm = sum(P_curr)
+                    for curr in range(len(P_curr)):
+                        P_curr[curr] /= norm
+
+                    for curr in range(self.L):
+                        if t != M:
+                            A_den[curr] += P_curr[curr]
+                        O_den[curr] += P_curr[curr]
+                        O_num[curr][x[t - 1]] += P_curr[curr]
+
+                # E: Update the expectedP(y^j = a, y^j+1 = b, x) for given (x, y)
+                for t in range(1, M):
+                    P_curr_nxt = [[0. for _ in range(self.L)] for _ in range(self.L)]
+
+                    for curr in range(self.L):
+                        for nxt in range(self.L):
+                            P_curr_nxt[curr][nxt] = alphas[t][curr] \
+                                                    * self.A[curr][nxt] \
+                                                    * self.O[nxt][x[t]] \
+                                                    * betas[t + 1][nxt]
+
+                    # Normalize:
+                    norm = 0
+                    for lst in P_curr_nxt:
+                        norm += sum(lst)
+                    for curr in range(self.L):
+                        for nxt in range(self.L):
+                            P_curr_nxt[curr][nxt] /= norm
+
+                    # Update A_num
+                    for curr in range(self.L):
+                        for nxt in range(self.L):
+                            A_num[curr][nxt] += P_curr_nxt[curr][nxt]
+
+            for curr in range(self.L):
+                for nxt in range(self.L):
+                    self.A[curr][nxt] = A_num[curr][nxt] / A_den[curr]
+
+            for curr in range(self.L):
+                for xt in range(self.D):
+                    self.O[curr][xt] = O_num[curr][xt] / O_den[curr]
 
 
     def generate_emission(self, M):
