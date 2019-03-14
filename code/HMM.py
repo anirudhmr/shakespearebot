@@ -162,7 +162,16 @@ class HiddenMarkovModel:
                     summ = 0
                     for k in range(self.L):
                         summ += alphas[i - 1][k]*self.A[k][j]
+                    # print("Alphas")
+                    # print(alphas[i][j])
+                    # print("OJ")
+                    # print(self.O[j][0])
+                    # print("X")
+                    # print(x[i-1])
+                    # print("self.O[j][x]")
+                    # print(self.O[j][x[i-1]])
                     alphas[i][j] = summ*self.O[j][x[i - 1]]
+
             if normalize:
                 norm = sum(alphas[i])
                 for j in range(self.L):
@@ -299,7 +308,7 @@ class HiddenMarkovModel:
                         for b in range(self.L):
                             marg2[i][j][a][b] = alphas[j][a]*betas[j+1][b]*self.A[a][b]*self.O[b][X[i][j]] / norm_sum
 
-            print(marg2[0][1][2][2])
+            print("iter: ", e )
 
             for i in range(self.L):
                 for j in range(self.L):
