@@ -59,7 +59,7 @@ def states_to_wordclouds(hmm, obs_map, max_words=50, show=True):
     wordclouds = []
 
     # Generate a large emission.
-    emission, states = hmm.generate_emission(M)
+    emission, states = hmm.generate_emission2(M)
 
     # For each state, get a list of observations that have been emitted
     # from that state.
@@ -93,17 +93,17 @@ def parse_observations(text):
 
     for line in lines:
         obs_elem = []
-        
+
         for word in line:
             word = re.sub(r'[^\w]', '', word).lower()
             if word not in obs_map:
                 # Add unique words to the observations map.
                 obs_map[word] = obs_counter
                 obs_counter += 1
-            
+
             # Add the encoded word.
             obs_elem.append(obs_map[word])
-        
+
         # Add the encoded sequence.
         obs.append(obs_elem)
 
@@ -122,7 +122,7 @@ def sample_sentence(hmm, obs_map, n_words=100):
     obs_map_r = obs_map_reverser(obs_map)
 
     # Sample and convert sentence.
-    emission, states = hmm.generate_emission(n_words)
+    emission, states = hmm.generate_emission2(n_words)
     sentence = [obs_map_r[i] for i in emission]
 
     return ' '.join(sentence).capitalize() + '...'
@@ -166,13 +166,13 @@ def animate_emission(hmm, obs_map, M=8, height=12, width=12, delay=1):
     arrow_p1 = 0.03
     arrow_p2 = 0.02
     arrow_p3 = 0.06
-    
+
     # Initialize.
     n_states = len(hmm.A)
     obs_map_r = obs_map_reverser(obs_map)
     wordclouds = states_to_wordclouds(hmm, obs_map, max_words=20, show=False)
 
-    # Initialize plot.    
+    # Initialize plot.
     fig, ax = plt.subplots()
     fig.set_figheight(height)
     fig.set_figwidth(width)
@@ -189,7 +189,7 @@ def animate_emission(hmm, obs_map, M=8, height=12, width=12, delay=1):
 
     # Initialize text.
     text = ax.text(text_x_offset, lim - text_y_offset, '', fontsize=24)
-        
+
     # Make the arrows.
     zorder_mult = n_states ** 2 * 100
     arrows = []
@@ -201,7 +201,7 @@ def animate_emission(hmm, obs_map, M=8, height=12, width=12, delay=1):
             y_i = y_offset + R * np.sin(np.pi * 2 * i / n_states)
             x_j = x_offset + R * np.cos(np.pi * 2 * j / n_states)
             y_j = y_offset + R * np.sin(np.pi * 2 * j / n_states)
-            
+
             dx = x_j - x_i
             dy = y_j - y_i
             d = np.sqrt(dx**2 + dy**2)
@@ -223,7 +223,7 @@ def animate_emission(hmm, obs_map, M=8, height=12, width=12, delay=1):
             row.append(arrow)
         arrows.append(row)
 
-    emission, states = hmm.generate_emission(M)
+    emission, states = hmm.generate_emission2(M)
 
     def animate(i):
         if i >= delay:

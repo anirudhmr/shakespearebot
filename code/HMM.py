@@ -399,18 +399,14 @@ class HiddenMarkovModel:
                 for xt in range(self.D):
                     self.O[curr][xt] = O_num[curr][xt] / O_den[curr]
 
-
-    def generate_emission(self, M):
+    def generate_emission2(self, M):
         '''
         Generates an emission of length M, assuming that the starting state
         is chosen uniformly at random.
-
         Arguments:
             M:          Length of the emission to generate.
-
         Returns:
             emission:   The randomly generated emission as a list.
-
             states:     The randomly generated states as a list.
         '''
 
@@ -430,6 +426,78 @@ class HiddenMarkovModel:
             i += 1
 
         return emission, states
+
+    def generate_emission(self, M, line_no, rhymes, prev, haiku, syl_dic):
+        '''
+        Generates an emission of length M, assuming that the starting state
+        is chosen uniformly at random.
+
+        Arguments:
+            M:          Length of the emission to generate.
+
+        Returns:
+            emission:   The randomly generated emission as a list.
+
+            states:     The randomly generated states as a list.
+        '''
+
+        emission = []
+        states = []
+
+        i = 0
+
+        output = 0
+        syl_max = 0
+        if haiku:
+            while i < 3:
+                syl_count = 0
+                if i == 0 or i == 2:
+                    syl_max = 5
+                else:
+                    syl_max = 7
+                if i == 0:
+                    y = random.choices(list(range(self.L)), self.A_start)[0]
+                    states.append(y)
+                    output = random.choices(list(range(self.D)), self.O[y])[0]
+                    emission.append(output)
+                    syl_count += syl_dic[output]
+                while syl_count < syl_max:
+                    y = random.choices(list(range(self.L)), self.A[states[-1]])[0]
+                    output = random.choices(list(range(self.D)), self.O[y])[0]
+                    if syl_count + syl_dic[output] > syl_max:
+                        continue
+                    else:
+                        states.append(y)
+                        emission.append(output)
+                        syl_count += syl_dic[output]
+                emission.append(10000)
+                i += 1
+        else:
+            while i < M:
+                rnum = random.random()
+                if i == 0:
+                    y = random.choices(list(range(self.L)), self.A_start)[0]
+                else:
+                    y = random.choices(list(range(self.L)), self.A[states[i - 1]])[0]
+                states.append(y)
+                if i == M - 1:
+                    if ((line_no != 14 and (line_no % 4 == 1 or line_no % 4 == 2)) or (line_no == 13)):
+                        while True:
+                            output = random.choices(list(range(self.D)), self.O[y])[0]
+                            if output not in rhymes:
+                                continue
+                            else:
+                                emission.append(output)
+                                break
+                    elif ((line_no % 4 == 0 or line_no % 4 == 3) or (line_no == 14)):
+                        possible = rhymes[prev]
+                        index = random.randint(0, len(possible) - 1)
+                        emission.append(possible[index])
+                else:
+                    emission.append(random.choices(list(range(self.D)), self.O[y])[0])
+                i += 1
+
+        return emission, output
 
 
     def probability_alphas(self, x):
