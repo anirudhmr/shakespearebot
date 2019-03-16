@@ -381,7 +381,7 @@ builded 2
 building 2
 built 1
 burden 2
-buried 2 E3
+buried 2
 buriest 2
 burn 1
 burned 1
@@ -1026,7 +1026,7 @@ flame 1
 flatter E1 2
 flattered 2
 flatterer 3
-flattery 2 E3
+flattery 2 
 fled 1
 fleece 1
 fleet'st 1
